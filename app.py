@@ -4,6 +4,7 @@
     pip install -r requirements.txt
     streamlit run app.py
 """
+import html
 import io
 import json
 import re
@@ -18,6 +19,7 @@ from rapidfuzz import fuzz
 
 SHELVES_FILE = Path(__file__).with_name("shelves.json")
 MAX_WIDTH = 1600  # عکس بزرگ‌تر از این قبل از OCR کوچک می‌شود
+LOW_CONFIDENCE = 90  # زیر این امتیاز، کارت نتیجه هشدار می‌دهد
 
 DEFAULT_SHELVES = {
     "Gucci Guilty": {"shelf": "A3", "aliases": ["گوچی گیلتی", "عطر گوچی گیلتی"]},
@@ -77,14 +79,20 @@ def df_to_shelves(df: pd.DataFrame) -> dict:
 # ---------------------------------------------------------------------------
 
 _DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+_TO_FA = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+
+
+def fa(n) -> str:
+    """عدد را با رقم فارسی نشان می‌دهد."""
+    return str(n).translate(_TO_FA)
 
 
 def normalize(text: str) -> str:
     text = text.translate(_DIGITS)
-    text = re.sub(r"[\u064B-\u065F\u0670]", "", text)  # اعراب
-    text = text.replace("ي", "ی").replace("ك", "ک").replace("\u200c", " ")
+    text = re.sub(r"[ً-ٰٟ]", "", text)  # اعراب
+    text = text.replace("ي", "ی").replace("ك", "ک").replace("‌", " ")
     text = text.lower()
-    text = re.sub(r"[^a-z0-9\u0600-\u06FF ]+", " ", text)
+    text = re.sub(r"[^a-z0-9؀-ۿ ]+", " ", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -154,7 +162,7 @@ def search_manual(query: str, shelves: dict, limit: int = 5):
 # ---------------------------------------------------------------------------
 
 
-@st.cache_resource(show_spinner="در حال بارگذاری مدل OCR (بار اول کمی طول می‌کشد)...")
+@st.cache_resource(show_spinner="در حال بارگذاری مدل OCR (بار اول چند دقیقه طول می‌کشد)...")
 def get_reader():
     import easyocr
 
@@ -177,79 +185,248 @@ def run_ocr(data: bytes) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# رابط کاربری
+# ظاهر
+# ---------------------------------------------------------------------------
+
+CSS = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&family=Cormorant+Garamond:wght@600;700&display=swap');
+
+:root {
+  --mist: #EDF0EE;
+  --paper: #FFFFFF;
+  --ink: #14282B;
+  --ink-soft: #3B514E;
+  --bottle: #1F4D4A;
+  --amber: #F2B84B;
+  --amber-deep: #8A5A0B;
+  --line: #C3CEC9;
+  --sans: 'Vazirmatn', Tahoma, sans-serif;
+  --serif: 'Cormorant Garamond', 'Vazirmatn', Georgia, serif;
+}
+
+.stApp { background: var(--mist); color: var(--ink); }
+#MainMenu, footer, [data-testid="stHeader"], [data-testid="stToolbar"] { display: none; }
+.block-container { max-width: 680px; padding: 1.6rem 1.1rem 4rem; direction: rtl; }
+
+.stApp p, .stApp label, .stApp button, .stApp input, .stApp textarea,
+.stApp li, .stTabs [data-baseweb="tab"] { font-family: var(--sans); }
+
+/* سربرگ */
+.head h1 { font-family: var(--sans); font-weight: 800; font-size: 2rem; line-height: 1.3;
+  margin: 0; padding: 0; color: var(--ink); }
+.head p { margin: .2rem 0 1.1rem; color: var(--ink-soft); font-size: 1rem; }
+
+/* تب‌ها */
+.stTabs [data-baseweb="tab-list"] { gap: 1.5rem; border-bottom: 1px solid var(--line); }
+.stTabs [data-baseweb="tab"] { padding: .65rem 0; font-weight: 600; color: var(--ink-soft); background: none; }
+.stTabs [aria-selected="true"] { color: var(--ink); }
+.stTabs [data-baseweb="tab-highlight"] { background: var(--amber); height: 3px; }
+.stTabs [data-baseweb="tab-border"] { display: none; }
+
+/* آپلود */
+[data-testid="stFileUploaderDropzone"] { border: 2px dashed #7C9791; background: #F8FAF9;
+  border-radius: 10px; padding: 1.5rem 1rem; }
+[data-testid="stFileUploaderDropzoneInstructions"] small { display: none; }
+[data-testid="stFileUploaderDropzoneInstructions"] span:first-child { font-size: 0; }
+[data-testid="stFileUploaderDropzoneInstructions"] span:first-child::after {
+  content: "عکس برگه را اینجا رها کن"; font-size: 1rem; font-family: var(--sans); color: var(--ink); }
+[data-testid="stFileUploaderDropzone"] button { font-size: 0; border-radius: 10px;
+  border: 1.5px solid var(--bottle); background: transparent; }
+[data-testid="stFileUploaderDropzone"] button::after { content: "انتخاب عکس"; font-size: .95rem;
+  font-family: var(--sans); font-weight: 600; color: var(--bottle); }
+
+/* ورودی‌ها و دکمه‌ها */
+.stTextInput input { border-radius: 10px; font-size: 1.1rem; padding: .7rem .9rem; }
+.stButton button[kind="primary"], .stButton button[data-testid="stBaseButton-primary"] {
+  background: var(--bottle); border: none; color: #fff; border-radius: 10px; font-weight: 600;
+  padding: .55rem 1.4rem; }
+[data-testid="stExpander"] { border: 1px solid var(--line); border-radius: 10px; background: #F8FAF9; }
+[data-testid="stImage"] img { border: 1px solid var(--line); border-radius: 6px; }
+[data-testid="stSlider"] { direction: ltr; }
+[data-testid="stSlider"] [data-testid="stWidgetLabel"] { direction: rtl; }
+[data-testid="stDataFrame"], [data-testid="stDataEditor"] { direction: ltr; }
+
+/* برچسب قفسه */
+.tag { display: flex; align-items: stretch; background: var(--paper); border: 1px solid var(--line);
+  border-radius: 6px; overflow: hidden; margin: 0 0 .9rem; box-shadow: 0 2px 0 var(--line); }
+.tag-code { background: var(--ink); color: var(--amber); min-width: 7rem; display: flex;
+  flex-direction: column; align-items: center; justify-content: center; padding: 1rem .8rem; }
+.tag-code b { font-family: var(--sans); font-weight: 800; font-size: 3rem; line-height: 1;
+  letter-spacing: .02em; }
+.tag-code span { font-size: .85rem; margin-top: .4rem; color: #BFD0CB; }
+.tag-info { flex: 1; padding: .9rem 1.1rem; display: flex; flex-direction: column;
+  justify-content: center; gap: .55rem; min-width: 0; }
+.tag-name { font-family: var(--serif); font-weight: 700; font-size: 1.75rem; line-height: 1.15;
+  color: var(--ink); text-align: right; overflow-wrap: anywhere; }
+.tag-meta { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip { font-size: .85rem; padding: .12rem .65rem; border-radius: 999px; border: 1px solid var(--line);
+  background: #F3F6F5; color: var(--ink-soft); }
+.chip--multi { background: var(--amber); border-color: #D9952B; color: var(--ink); font-weight: 700; }
+.tag-warn { font-size: .9rem; color: var(--amber-deep); line-height: 1.7; }
+.tag--low { border: 2px solid #D9952B; }
+.tag--compact .tag-code { min-width: 4.8rem; padding: .7rem .5rem; }
+.tag--compact .tag-code b { font-size: 2rem; }
+.tag--compact .tag-name { font-size: 1.4rem; }
+
+/* حالت خالی و خطا */
+.note { border: 2px dashed #9FB1AB; border-radius: 6px; padding: 1rem 1.2rem; color: var(--ink-soft);
+  line-height: 1.9; }
+.note strong { color: var(--ink); display: block; font-size: 1.05rem; }
+
+.count { color: var(--ink-soft); margin: .9rem 0 .4rem; }
+</style>
+"""
+
+
+def tag_html(name, shelf, score=None, qty=None, compact=False) -> str:
+    low = score is not None and score < LOW_CONFIDENCE
+    cls = "tag" + (" tag--low" if low else "") + (" tag--compact" if compact else "")
+    parts = [
+        f'<div class="{cls}">',
+        f'<div class="tag-code"><b dir="ltr">{html.escape(str(shelf))}</b><span>قفسه</span></div>',
+        '<div class="tag-info">',
+        f'<div class="tag-name" dir="auto">{html.escape(str(name))}</div>',
+    ]
+    chips = []
+    if qty:
+        chips.append(f'<span class="chip{" chip--multi" if qty > 1 else ""}">تعداد {fa(qty)}</span>')
+    if score is not None:
+        chips.append(f'<span class="chip">اطمینان {fa(round(score))}٪</span>')
+    if chips:
+        parts.append('<div class="tag-meta">' + "".join(chips) + "</div>")
+    if low:
+        parts.append(
+            '<div class="tag-warn">اطمینان کم است؛ اسم روی برگه را با این عطر مقایسه کن.</div>'
+        )
+    parts.append("</div></div>")
+    return "".join(parts)
+
+
+def note_html(title: str, body: str) -> str:
+    return f'<div class="note"><strong>{html.escape(title)}</strong>{html.escape(body)}</div>'
+
+
+# ---------------------------------------------------------------------------
+# تب‌ها
 # ---------------------------------------------------------------------------
 
 
 def scan_tab(shelves: dict):
-    threshold = st.slider(
-        "حساسیت تطبیق (کمتر = آسان‌گیرتر)", 60, 100, 80,
-        help="اگر عطر پیدا نمی‌شود عدد را کمتر کن؛ اگر عطرهای اشتباه نشان می‌دهد بیشتر کن.",
+    source = st.radio(
+        "منبع عکس", ["آپلود عکس", "دوربین"], horizontal=True, label_visibility="collapsed"
     )
-    source = st.radio("منبع عکس", ["آپلود فایل", "دوربین"], horizontal=True)
 
     data = None
-    if source == "آپلود فایل":
-        f = st.file_uploader("عکس برگه سفارش", type=["jpg", "jpeg", "png", "webp"])
+    if source == "آپلود عکس":
+        f = st.file_uploader(
+            "عکس برگه سفارش", type=["jpg", "jpeg", "png", "webp"], label_visibility="collapsed"
+        )
         if f:
             data = f.getvalue()
     else:
-        c = st.camera_input("از برگه عکس بگیر")
+        c = st.camera_input("از برگه عکس بگیر", label_visibility="collapsed")
         if c:
             data = c.getvalue()
 
     if data is None:
         return
 
-    st.image(prepare_image(data), width=380)
-    with st.spinner("در حال خواندن برگه..."):
+    with st.spinner("در حال خواندن برگه…"):
         lines = run_ocr(data)
 
-    with st.expander("متن خوانده‌شده توسط OCR"):
-        st.write(lines)
-
+    threshold = st.session_state.get("threshold", 80)
     hits = find_hits(lines, shelves, threshold)
     qty = extract_quantity(lines)
 
     if hits:
         for h in hits:
-            st.success(f"### {h.name}\n\n## 📍 قفسه: {h.shelf}\n\nاطمینان: {h.score:.0f}٪")
-        if qty:
-            st.info(f"تعداد ثبت‌شده در برگه: {qty}")
+            st.markdown(tag_html(h.name, h.shelf, score=h.score, qty=qty), unsafe_allow_html=True)
     else:
-        st.error("هیچ عطری پیدا نشد. متن خوانده‌شده را بررسی کن یا پایین جستجوی دستی بزن.")
+        st.markdown(
+            note_html(
+                "عطری پیدا نشد",
+                "سخت‌گیری تطبیق را کمتر کن، یا اسم عطر را در تب «جستجو» تایپ کن. "
+                "اگر عطر در لیست نیست، از تب «قفسه‌ها» اضافه‌اش کن.",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with st.expander("عکس برگه و متن خوانده‌شده"):
+        try:
+            st.image(prepare_image(data), width="stretch")
+        except Exception:  # نسخه‌های قدیمی‌تر Streamlit
+            st.image(prepare_image(data), use_container_width=True)
+        st.code("\n".join(lines) or "(متنی خوانده نشد)", language=None)
+
+    with st.expander("تنظیمات تطبیق"):
+        st.slider(
+            "سخت‌گیری تطبیق", 60, 100, 80, key="threshold",
+            help="اگر عطر پیدا نشد عدد را کم کن؛ اگر عطر اشتباه نشان داد زیاد کن.",
+        )
 
 
 def manual_tab(shelves: dict):
-    q = st.text_input("اسم عطر را تایپ کن (فارسی یا انگلیسی)")
-    for score, name, shelf in search_manual(q, shelves):
-        st.write(f"**{name}** ← قفسه **{shelf}**  ({score:.0f}٪)")
+    q = st.text_input(
+        "نام عطر",
+        placeholder="مثلاً گوچی گیلتی یا Gucci Guilty",
+        label_visibility="collapsed",
+    )
+    if not q.strip():
+        return
+    results = [r for r in search_manual(q, shelves) if r[0] >= 60]
+    if results:
+        for _, name, shelf in results:
+            st.markdown(tag_html(name, shelf, compact=True), unsafe_allow_html=True)
+    else:
+        st.markdown(
+            note_html("نتیجه‌ای پیدا نشد", "املای دیگری امتحان کن، یا عطر را از تب «قفسه‌ها» اضافه کن."),
+            unsafe_allow_html=True,
+        )
 
 
 def manage_tab(shelves: dict):
+    if st.session_state.pop("just_saved", False):
+        st.success("لیست ذخیره شد.")
+
+    st.markdown(f'<div class="count">{fa(len(shelves))} عطر در لیست</div>', unsafe_allow_html=True)
     st.caption(
-        "name: اسم اصلی (ترجیحاً انگلیسی) • aliases: اسم‌های دیگر با ویرگول جدا شود "
-        "(مثلاً نام فارسی) • shelf: شماره قفسه"
+        "اسم انگلیسی را در ستون اول و اسم فارسی را در ستون دوم بنویس (چند اسم را با ویرگول جدا کن)."
     )
-    edited = st.data_editor(
-        shelves_to_df(shelves), num_rows="dynamic", use_container_width=True, key="editor"
-    )
-    if st.button("ذخیره تغییرات", type="primary"):
+
+    cfg = {
+        "name": st.column_config.TextColumn("نام عطر", required=True),
+        "aliases": st.column_config.TextColumn("نام‌های دیگر"),
+        "shelf": st.column_config.TextColumn("قفسه", required=True, width="small"),
+    }
+    try:
+        edited = st.data_editor(
+            shelves_to_df(shelves), num_rows="dynamic", width="stretch",
+            column_config=cfg, key="editor",
+        )
+    except Exception:  # نسخه‌های قدیمی‌تر Streamlit
+        edited = st.data_editor(
+            shelves_to_df(shelves), num_rows="dynamic", use_container_width=True,
+            column_config=cfg, key="editor",
+        )
+
+    if st.button("ذخیره لیست", type="primary"):
         save_shelves(df_to_shelves(edited))
-        st.success("ذخیره شد.")
+        st.session_state["just_saved"] = True
         st.rerun()
 
 
 def main():
-    st.set_page_config(page_title="قفسه عطر", page_icon="🧴")
+    st.set_page_config(page_title="قفسه عطر", page_icon="🧴", layout="centered")
+    st.markdown(CSS, unsafe_allow_html=True)
     st.markdown(
-        "<style>.stMarkdown, .stAlert {direction: rtl; text-align: right;}</style>",
+        '<div class="head"><h1>قفسه عطر</h1>'
+        "<p>عکس برگه‌ی سفارش را بده تا قفسه‌ی هر عطر را ببینی.</p></div>",
         unsafe_allow_html=True,
     )
-    st.title("🧴 پیدا کردن قفسه عطر")
 
     shelves = load_shelves()
-    t1, t2, t3 = st.tabs(["اسکن برگه", "جستجوی دستی", "مدیریت قفسه‌ها"])
+    t1, t2, t3 = st.tabs(["اسکن برگه", "جستجو", "قفسه‌ها"])
     with t1:
         scan_tab(shelves)
     with t2:
