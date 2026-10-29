@@ -1,0 +1,6 @@
+streamlit
+easyocr
+rapidfuzz
+pillow
+pandas
+numpy
