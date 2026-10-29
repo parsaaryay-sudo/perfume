@@ -313,6 +313,12 @@ def note_html(title: str, body: str) -> str:
 
 
 def scan_tab(shelves: dict):
+    with st.expander("تنظیمات تطبیق"):
+        threshold = st.slider(
+            "سخت‌گیری تطبیق", 60, 100, 80, key="threshold",
+            help="اگر عطر پیدا نشد عدد را کم کن؛ اگر عطر اشتباه نشان داد زیاد کن.",
+        )
+
     source = st.radio(
         "منبع عکس", ["آپلود عکس", "دوربین"], horizontal=True, label_visibility="collapsed"
     )
@@ -335,7 +341,6 @@ def scan_tab(shelves: dict):
     with st.spinner("در حال خواندن برگه…"):
         lines = run_ocr(data)
 
-    threshold = st.session_state.get("threshold", 80)
     hits = find_hits(lines, shelves, threshold)
     qty = extract_quantity(lines)
 
@@ -358,12 +363,6 @@ def scan_tab(shelves: dict):
         except Exception:  # نسخه‌های قدیمی‌تر Streamlit
             st.image(prepare_image(data), use_container_width=True)
         st.code("\n".join(lines) or "(متنی خوانده نشد)", language=None)
-
-    with st.expander("تنظیمات تطبیق"):
-        st.slider(
-            "سخت‌گیری تطبیق", 60, 100, 80, key="threshold",
-            help="اگر عطر پیدا نشد عدد را کم کن؛ اگر عطر اشتباه نشان داد زیاد کن.",
-        )
 
 
 def manual_tab(shelves: dict):
