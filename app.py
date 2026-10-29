@@ -193,14 +193,14 @@ CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&family=Cormorant+Garamond:wght@600;700&display=swap');
 
 :root {
-  --mist: #EEECEE;
-  --paper: #FFFFFF;
-  --ink: #2B272C;
-  --ink-soft: #625C63;
+  --mist: #1E1B20;
+  --paper: #2A262C;
+  --ink: #F1EDF0;
+  --ink-soft: #B5ADB6;
   --pink: #C23B78;
   --pink-soft: #F7A8C8;
-  --pink-deep: #A3205A;
-  --line: #D3CDD2;
+  --warn: #FFB3D1;
+  --line: #4A434B;
   --sans: 'Vazirmatn', Tahoma, sans-serif;
   --serif: 'Cormorant Garamond', 'Vazirmatn', Georgia, serif;
 }
@@ -225,23 +225,23 @@ CSS = """
 .stTabs [data-baseweb="tab-border"] { display: none; }
 
 /* آپلود */
-[data-testid="stFileUploaderDropzone"] { border: 2px dashed #A79FA6; background: #FAF8F9;
+[data-testid="stFileUploaderDropzone"] { border: 2px dashed #6C636D; background: #25212A;
   border-radius: 10px; padding: 1.5rem 1rem; }
 [data-testid="stFileUploaderDropzoneInstructions"] small { display: none; }
 [data-testid="stFileUploaderDropzoneInstructions"] span:first-child { font-size: 0; }
 [data-testid="stFileUploaderDropzoneInstructions"] span:first-child::after {
   content: "عکس برگه را اینجا رها کن"; font-size: 1rem; font-family: var(--sans); color: var(--ink); }
 [data-testid="stFileUploaderDropzone"] button { font-size: 0; border-radius: 10px;
-  border: 1.5px solid var(--pink); background: transparent; }
+  border: 1.5px solid var(--pink-soft); background: transparent; }
 [data-testid="stFileUploaderDropzone"] button::after { content: "انتخاب عکس"; font-size: .95rem;
-  font-family: var(--sans); font-weight: 600; color: var(--pink); }
+  font-family: var(--sans); font-weight: 600; color: var(--pink-soft); }
 
 /* ورودی‌ها و دکمه‌ها */
 .stTextInput input { border-radius: 10px; font-size: 1.1rem; padding: .7rem .9rem; }
 .stButton button[kind="primary"], .stButton button[data-testid="stBaseButton-primary"] {
   background: var(--pink); border: none; color: #fff; border-radius: 10px; font-weight: 600;
   padding: .55rem 1.4rem; }
-[data-testid="stExpander"] { border: 1px solid var(--line); border-radius: 10px; background: #FAF8F9; }
+[data-testid="stExpander"] { border: 1px solid var(--line); border-radius: 10px; background: #25212A; }
 [data-testid="stImage"] img { border: 1px solid var(--line); border-radius: 6px; }
 [data-testid="stSlider"] { direction: ltr; }
 [data-testid="stSlider"] [data-testid="stWidgetLabel"] { direction: rtl; }
@@ -250,27 +250,27 @@ CSS = """
 /* برچسب قفسه */
 .tag { display: flex; align-items: stretch; background: var(--paper); border: 1px solid var(--line);
   border-radius: 6px; overflow: hidden; margin: 0 0 .9rem; box-shadow: 0 2px 0 var(--line); }
-.tag-code { background: var(--ink); color: var(--pink-soft); min-width: 7rem; display: flex;
+.tag-code { background: var(--pink-soft); color: #2B272C; min-width: 7rem; display: flex;
   flex-direction: column; align-items: center; justify-content: center; padding: 1rem .8rem; }
 .tag-code b { font-family: var(--sans); font-weight: 800; font-size: 3rem; line-height: 1;
   letter-spacing: .02em; }
-.tag-code span { font-size: .85rem; margin-top: .4rem; color: #D9CFD6; }
+.tag-code span { font-size: .85rem; margin-top: .4rem; color: #4A2536; }
 .tag-info { flex: 1; padding: .9rem 1.1rem; display: flex; flex-direction: column;
   justify-content: center; gap: .55rem; min-width: 0; }
 .tag-name { font-family: var(--serif); font-weight: 700; font-size: 1.75rem; line-height: 1.15;
   color: var(--ink); text-align: right; overflow-wrap: anywhere; }
 .tag-meta { display: flex; flex-wrap: wrap; gap: .4rem; }
 .chip { font-size: .85rem; padding: .12rem .65rem; border-radius: 999px; border: 1px solid var(--line);
-  background: #F4F1F3; color: var(--ink-soft); }
-.chip--multi { background: var(--pink-soft); border-color: #E27AA6; color: var(--ink); font-weight: 700; }
-.tag-warn { font-size: .9rem; color: var(--pink-deep); line-height: 1.7; }
-.tag--low { border: 2px dashed var(--pink); }
+  background: #332E35; color: var(--ink-soft); }
+.chip--multi { background: var(--pink-soft); border-color: #E27AA6; color: #2B272C; font-weight: 700; }
+.tag-warn { font-size: .9rem; color: var(--warn); line-height: 1.7; }
+.tag--low { border: 2px dashed var(--pink-soft); }
 .tag--compact .tag-code { min-width: 4.8rem; padding: .7rem .5rem; }
 .tag--compact .tag-code b { font-size: 2rem; }
 .tag--compact .tag-name { font-size: 1.4rem; }
 
 /* حالت خالی و خطا */
-.note { border: 2px dashed #B9AFB7; border-radius: 6px; padding: 1rem 1.2rem; color: var(--ink-soft);
+.note { border: 2px dashed #6C636D; border-radius: 6px; padding: 1rem 1.2rem; color: var(--ink-soft);
   line-height: 1.9; }
 .note strong { color: var(--ink); display: block; font-size: 1.05rem; }
 
