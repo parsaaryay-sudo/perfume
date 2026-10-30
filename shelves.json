@@ -1,14 +1,41 @@
 {
-  "Gucci Guilty": {
-    "shelf": "A3",
-    "aliases": ["گوچی گیلتی", "عطر گوچی گیلتی"]
+  "Xerjoff Alexandria II HI": {
+    "shelf": "",
+    "aliases": [
+      "زرجوف الکساندریا 2 HI",
+      "عطر زرجوف الکساندریا 2 HI"
+    ]
   },
-  "Dior Sauvage": {
-    "shelf": "B1",
-    "aliases": ["دیور ساواج"]
+  "Xerjoff Alexandria II": {
+    "shelf": "",
+    "aliases": [
+      "زرجوف الکساندریا 2",
+      "عطر زرجوف الکساندریا 2"
+    ]
   },
-  "Chanel Chance": {
-    "shelf": "C2",
-    "aliases": ["شنل چنس"]
-  }
-}
+  "Xerjoff Alexandria II Anniversary": {
+    "shelf": "",
+    "aliases": [
+      "زرجوف الکساندریا 2 اله اینورسری",
+      "عطر زرجوف الکساندریا 2 اله اینورسری"
+    ]
+  },
+  "Xerjoff Anniversary": {
+    "shelf": "",
+    "aliases": [
+      "زرجوف اله اینورسری",
+      "عطر زرجوف اله اینورسری"
+    ]
+  },
+  "Xerjoff Torino 24": {
+    "shelf": "",
+    "aliases": [
+      "زرجوف تورینو 24",
+      "عطر زرجوف تورینو 24"
+    ]
+  },
+  "Xerjoff Torino 22": {
+    "shelf": "",
+    "aliases": [
+      "زرجوف تورینو 22",
+      "عطر زرجوف تورینو 22"
